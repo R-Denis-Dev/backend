@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'bank'
+    'bank.apps.BankConfig'
 ]
 
 REST_FRAMEWORK = {
@@ -47,6 +47,8 @@ REST_FRAMEWORK = {
         'bank.authentication.BearerToken'
     ]
 }
+
+AUTH_USER_MODEL = "bank.User"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
