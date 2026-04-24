@@ -32,41 +32,47 @@ class AuthenticationViewsets(viewsets.ViewSet):
     def register(self,request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({
-            'detail':"Вы успешно зарегистрировались"
-        })
-        
-    @action(methods=['post'],detail=False)
-    def login(self,request):
-        serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = authenticate(**serializer.validated_data)
-        if not user:
-            return Response({
-                "detail":"Неверные данные"
-            }, status=status.HTTP_400_BAD_REQUEST)
+        user = serializer.save()
         token, created = Token.objects.get_or_create(user=user)
         return Response({
-            'accessToken':token.key,
-            'timestamp':created,
-            'user':serializer.data
+            'detail': 'Вы успешно зарегистрировались',
+            'accessToken': token.key
+        })
+        
+    @action(methods=['post'], detail=False)
+    def login(self, request):
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = authenticate(
+            username=serializer.validated_data['username'],
+            password=serializer.validated_data['password']
+        )
+        if not user:
+            return Response(
+                {'detail': 'Неверные данные'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'accessToken': token.key,
+            'user': UserSerializer(user).data
         })
         
 class TransactionViewSet(viewsets.ModelViewSet):
-    queryset=Transaction.objects.all()
-    serializer_class=TransactionSerializer
+    queryset = Transaction.objects.all()
+    serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
+    def get_queryset(self):
+        return Transaction.objects.filter(client=self.request.user)
+
     def perform_create(self, serializer):
-        return serializer.save(client=self.request.user)
-    
-    @action(methods=['get'],detail=False)
-    def balance(self,request):
-        queryset = self.queryset.filter(client=request.user,status="approved")
-        balance_information = queryset.aggregate(
-            balance = Sum('cash'),
-        )
+        serializer.save(client=self.request.user)
+
+    @action(methods=['get'], detail=False)
+    def balance(self, request):
+        queryset = self.get_queryset().filter(status="approved")
+        balance_information = queryset.aggregate(balance=Sum('cash'))
         return Response(balance_information)
     
 
