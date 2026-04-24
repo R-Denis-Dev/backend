@@ -1,5 +1,5 @@
-from rest_framework.authentication import BaseAuthentication
+from rest_framework.authentication import TokenAuthentication
 
 
-class BearerToken(BaseAuthentication):
+class BearerToken(TokenAuthentication):
     keyword='Bearer'
